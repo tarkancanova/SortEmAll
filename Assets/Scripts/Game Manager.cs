@@ -234,19 +234,8 @@ public class GameManager : MonoBehaviour
 
     private void HandleMatchCleared(Shelf shelf)
     {
-        float currentTime = Time.time;
-
-        if (currentTime - lastMatchTime <= comboDuration)
-        {
-            comboMultiplier += 1f;
-        }
-        else
-        {
-            comboMultiplier = 1f;
-        }
-        lastMatchTime = currentTime;
-        score += Mathf.RoundToInt(scorePerMatch * comboMultiplier);
         CascadeItems(shelf);
+        HandleScore();
         UpdateScoreUI();
         matchCounter++;
         CheckWinCondition();
@@ -352,5 +341,21 @@ public class GameManager : MonoBehaviour
                 string status = slot.IsEmpty() ? "Empty" : $"Occupied by {slot.currentItem.name}";
             }
         }
+    }
+
+    private void HandleScore()
+    {
+        float currentTime = Time.time;
+
+        if (currentTime - lastMatchTime <= comboDuration)
+        {
+            comboMultiplier += 1f;
+        }
+        else
+        {
+            comboMultiplier = 1f;
+        }
+        lastMatchTime = currentTime;
+        score += Mathf.RoundToInt(scorePerMatch * comboMultiplier);
     }
 }
