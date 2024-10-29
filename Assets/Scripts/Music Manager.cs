@@ -8,6 +8,8 @@ public class MusicManager : MonoBehaviour
 
     void Start()
     {
+        DontDestroyOnLoad(this);
+
         audioSource = GetComponent<AudioSource>();
 
         PlayMusic();

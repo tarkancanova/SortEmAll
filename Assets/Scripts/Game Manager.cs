@@ -83,9 +83,7 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-
         List<GameObject> selectedItems = itemPrefabs.Take(itemCount).ToList();
-
 
         for (int i = 0; i < 3; i++)
         {
@@ -93,7 +91,6 @@ public class GameManager : MonoBehaviour
             {
                 return;
             }
-
 
             List<Slot> nonCascadedSlots = shelves[i].GetNonCascadedSlots();
             Slot targetSlot = nonCascadedSlots.Find(slot => slot.IsEmpty());
@@ -104,19 +101,22 @@ public class GameManager : MonoBehaviour
                 newItem.GetComponent<RectTransform>().localScale = Vector3.one;
                 targetSlot.PlaceItem(newItem);
                 addedItems.Add(newItem);
+
+                DragAndDropUI dragAndDropUI = newItem.GetComponent<DragAndDropUI>();
+                if (dragAndDropUI != null)
+                {
+                    dragAndDropUI.enabled = true; 
+                }
             }
             else
             {
-
                 return;
             }
         }
 
-
         if (shelves.Count > 0)
         {
             Shelf targetShelf = shelves[0];
-
 
             List<Slot> nonCascadedSlots = targetShelf.GetNonCascadedSlots().Where(slot => slot.IsEmpty()).ToList();
             if (nonCascadedSlots.Count >= 2)
@@ -130,11 +130,16 @@ public class GameManager : MonoBehaviour
                     newItem.GetComponent<RectTransform>().localScale = Vector3.one;
                     targetSlot.PlaceItem(newItem);
                     addedItems.Add(newItem);
+
+                    DragAndDropUI dragAndDropUI = newItem.GetComponent<DragAndDropUI>();
+                    if (dragAndDropUI != null)
+                    {
+                        dragAndDropUI.enabled = true; 
+                    }
                 }
             }
             else
             {
-
                 List<Slot> cascadedSlots = targetShelf.GetCascadedSlots().Where(slot => slot.IsEmpty()).ToList();
                 if (cascadedSlots.Count >= 2)
                 {
@@ -147,6 +152,12 @@ public class GameManager : MonoBehaviour
                         newItem.GetComponent<RectTransform>().localScale = Vector3.one;
                         targetSlot.PlaceItem(newItem);
                         addedItems.Add(newItem);
+
+                        DragAndDropUI dragAndDropUI = newItem.GetComponent<DragAndDropUI>();
+                        if (dragAndDropUI != null)
+                        {
+                            dragAndDropUI.enabled = false;
+                        }
                     }
                 }
                 else
@@ -156,16 +167,13 @@ public class GameManager : MonoBehaviour
             }
         }
 
-
         List<GameObject> remainingItems = selectedItems.Skip(5).ToList();
-
 
         List<Slot> allAvailableSlots = new List<Slot>();
         foreach (var shelf in shelves)
         {
             allAvailableSlots.AddRange(shelf.slots.Where(slot => slot.IsEmpty()));
         }
-
 
         List<Slot> shuffledSlots = allAvailableSlots.OrderBy(x => Random.value).ToList();
 
@@ -184,8 +192,27 @@ public class GameManager : MonoBehaviour
             newItem.GetComponent<RectTransform>().localScale = Vector3.one;
             targetSlot.PlaceItem(newItem);
             addedItems.Add(newItem);
+
+            if (targetSlot.isCascaded)
+            {
+                DragAndDropUI dragAndDropUI = newItem.GetComponent<DragAndDropUI>();
+                if (dragAndDropUI != null)
+                {
+                    dragAndDropUI.enabled = false;
+                }
+            }
+            else
+            {
+                DragAndDropUI dragAndDropUI = newItem.GetComponent<DragAndDropUI>();
+                if (dragAndDropUI != null)
+                {
+                    dragAndDropUI.enabled = true;
+                }
+            }
         }
     }
+
+
 
     private void OnEnable()
     {
@@ -257,33 +284,56 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        // Check if all primary (non-cascaded) slots are empty
         bool allPrimaryEmpty = shelf.GetNonCascadedSlots().All(slot => slot.IsEmpty());
+
+        // Check if there are items in cascaded slots
         bool hasCascadedItems = shelf.GetCascadedSlots().Any(slot => !slot.IsEmpty());
 
         if (allPrimaryEmpty && hasCascadedItems)
         {
+            // Get all cascaded slots with items and shuffle them
             List<Slot> cascadedSlots = shelf.GetCascadedSlots().Where(slot => !slot.IsEmpty()).OrderBy(x => Random.value).ToList();
+            // Get all empty primary slots and shuffle them
             List<Slot> primarySlots = shelf.GetNonCascadedSlots().Where(slot => slot.IsEmpty()).OrderBy(x => Random.value).ToList();
 
             foreach (var cascadeSlot in cascadedSlots)
             {
                 if (primarySlots.Count == 0)
                 {
-                    break;
+                    break; // No more available primary slots
                 }
 
-                Slot targetPrimarySlot = primarySlots[0];
-                primarySlots.RemoveAt(0);
+                Slot targetPrimarySlot = primarySlots[0]; // Get the first empty primary slot
+                primarySlots.RemoveAt(0); // Remove the used slot from the list
 
                 if (cascadeSlot.currentItem != null)
                 {
+                    // Move the item from the cascaded slot to the primary slot
                     targetPrimarySlot.PlaceItem(cascadeSlot.currentItem);
+
+                    // Enable DragAndDropUI on the item in the primary slot
+                    DragAndDropUI dragAndDropUI = cascadeSlot.currentItem.GetComponent<DragAndDropUI>();
+                    if (dragAndDropUI != null)
+                    {
+                        dragAndDropUI.enabled = true; // Enable drag and drop
+                    }
+
+                    // Apply primary slot visuals and notify the event manager
                     targetPrimarySlot.ApplyPrimaryVisuals();
                     EventManager.Instance.ItemPlaced(targetPrimarySlot);
+
+                    // Disable DragAndDropUI in the cascaded slot (since it's now empty)
+                    dragAndDropUI = cascadeSlot.GetComponentInChildren<DragAndDropUI>();
+                    if (dragAndDropUI != null)
+                    {
+                        dragAndDropUI.enabled = false; // Disable drag and drop
+                    }
                 }
             }
         }
     }
+
 
     private void UpdateScoreUI()
     {
